@@ -13,14 +13,3 @@ export const isValidJson = (str: string) => {
     }
     return true;
 }
-
-export const isPrimitive = (val: any) => {
-    if(val === null){
-        return true;
-    }
-    if  (typeof val == "object" || typeof val == "function"){
-        return false;
-    }   else{
-        return true;
-    }
-}

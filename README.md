@@ -482,28 +482,51 @@ Using the javascript `Set` object, what we do is to iterate the array of objects
 
 This way doing a JSON.stringify we generate a unique key for the Set. If we get a similar key it will not be added to the set.
 
-I have tried to generate a second version (non-recursive version that iterates through the json keys). I have decided to make it a non-recursive version because of the issue that if object is "big" in terms of nested items, we'll get a stack overflow error. I have not been able to finish this version but I leave it up for discussion.
+Although in my previous commit I said that I had tried to develop a second version but I had not been able to finish it.... I found some time this evening and finished it. It is the following code.
+
+The file you get is the same as with the first solution.
 
 ``` bash
-function sanitizeFile2(data: any) {
-    const result: any = {};
-    const stack = [data];
-    while (stack?.length > 0) {
-        const currentObj = stack.pop();
-        Object.keys(currentObj).forEach(key => {
-            console.log(`key: ${key}, value: ${currentObj[key]}`);
-            if (Array.isArray(currentObj[key]) && currentObj[key].length > 1) {
-                result[key] = removeDuplicates(currentObj[key]);
-            } else if (isPrimitive(currentObj[key])) {
-                result[key] = currentObj[key];
-            } else if (typeof currentObj[key] === 'object' && currentObj[key] !== null) {
-                stack.push(currentObj[key]);
+function sanitizeData(data: any): any {
+    if (Array.isArray(data)) {
+        const uniqueData = [];
+        const seen = new Set();
+        for (const item of data) {
+            let {_id, ...rest } = item;
+            const itemStr = JSON.stringify(rest);
+            if (!seen.has(itemStr)) {
+                uniqueData.push(item);
+                seen.add(itemStr);
             }
-        });
+        }
+        return uniqueData.map(sanitizeData);
+    } else if (typeof data === 'object' && data !== null) {
+        // If it is an object, we remove duplicates in keys and values.
+        const cleanedData: any = {};
+        for (const key in data) {
+            if (data.hasOwnProperty(key)) {
+                const cleanedKey = sanitizeData(key);
+                const cleanedValue = sanitizeData(data[key]);
+                cleanedData[cleanedKey] = cleanedValue;
+            }
+        }
+        return cleanedData;
+    } else {
+        // If it is neither an array nor an object, we return the value as is.
+        return data;
     }
-    writeFile('./src/clean_application2.json', JSON.stringify(result, null, 4));
 }
 ```
+
+I have commented the call to this second version in the following part of the code
+
+``` bash
+console.time('Knack Node Code Challenge -> Remove duplicates');
+sanitizeFile(data as KnackApplication, './src/clean_application.json');
+// sanitizeFile2(data, './src/clean_application2.json');
+console.timeEnd('Knack Node Code Challenge -> Remove duplicates');
+```
+
 
 **NOTE:** I probably could have used third-party dependencies such as [Underscore](https://underscorejs.org/) / [Lodash](https://lodash.com/) to solve this code challenge.
 
